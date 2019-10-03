@@ -1,0 +1,30 @@
+{
+  "name": "lum/lum-mailer",
+  "description": "Lum Mailer",
+  "license": "MIT",
+  "authors":
+  [
+    {
+      "name": "Timothy Totten",
+      "email": "supernovus@gmail.com",
+      "role": "Original Author"
+    }
+  ],
+  "require":
+  {
+    "php": "^7.0"
+  },
+  "require-dev":
+  {
+    "ext-json": "*",
+    "swiftmailer/swiftmailer": "^6.0",
+    "sendgrid/sendgrid": "~4"
+  },
+  "autoload":
+  {
+    "psr-4":
+    {
+      "Lum\\": "lib"
+    }
+  }
+}
