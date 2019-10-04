@@ -31,7 +31,7 @@ class Mailer
   public $log_errors = False;
   public $log_message = False;
 
-  public function __construct ($fields, $opts=array())
+  public function __construct ($fields=null, $opts=array())
   {
     // Send False or Null to disable the use of fields.
     if (is_array($fields))
