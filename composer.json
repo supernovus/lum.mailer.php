@@ -31,5 +31,12 @@
     {
       "Lum\\": "lib"
     }
+  },
+  "extra":
+  {
+    "branch-alias":
+    {
+      "dev-main": "1.x-dev"
+    }
   }
 }
