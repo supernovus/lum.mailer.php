@@ -2,26 +2,19 @@
 
 ## Summary
 
-A Mailer library that can wrap either SwiftMailer, or SendGrid.
+A Mailer library that can wrap either Symfony Mailer, or SendGrid.
 
-To use it with SwiftMailer, include `swiftmailer/swiftmailer` in your
-`require` dependency list.
-
-To use it with SendGrid, include `sendgrid/sendgrid` in your `require` list.
+This is meant as a modular component of the Lum Framework.
+If writing a regular app, just use Symfony Mailer directly and skip this.
 
 ## Classes
 
 | Class                   | Description                                       |
 | ----------------------- | ------------------------------------------------- |
-| Lum\Mailer              | The Core Mailer front-end library.                |
-| Lum\Mailer\Swift        | The SwiftMailer transport plugin.                 |
+| Lum\Mailer\Framework    | The Lum Framework Mailer component.               |
+| Lum\Mailer\Symfony      | The Symfony Mailer transport plugin.              |
 | Lum\Mailer\SendGrid     | The SendGrid transport plugin.                    |
-
-## TODO
-
-Update the `SendGrid` plugin from using the `sendgrid/sendgrid` version 4 API
-to the new version 7 API. There's been a lot of changes between v4 and v7, so
-it will likely require a fairly significant rewrite.
+| Lum\Mailer\Handler      | An interface for mail handlers.                   |
 
 ## Official URLs
 

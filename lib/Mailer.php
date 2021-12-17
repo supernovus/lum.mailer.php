@@ -1,6 +1,6 @@
 <?php
 
-namespace Lum;
+namespace Lum\Mailer;
 
 /**
  * A quick class to send e-mails with.
@@ -8,13 +8,10 @@ namespace Lum;
  *
  * It requires an underlying mailer plugin/handler.
  *
- * You can use 'Swift' to use SwiftMailer or 'SendGrid' to use SendGrid.
+ * You can use 'Symfony' to use SwiftMailer or 'SendGrid' to use SendGrid.
  * These are case sensitive since we're now using PSR-4 autoloading.
- *
- * They require the `swiftmailer/swiftmailer` or `sendgrid/sendgrid` packages
- * to be installed respectively.
  */
-class Mailer
+class Framework
 {
   // Internal rules.
   protected $fields;     // Field rules. 'true' required, 'false' optional.
@@ -48,17 +45,17 @@ class Mailer
 
     if (!isset($opts['handler']))
     { // Try to determine which handler to use.
-      if (class_exists('\\Swift_Mailer'))
+      if (class_exists('\\Symfony\\Component\\Mailer\\Mailer'))
       {
-        $opts['handler'] = "Swift";
+        $opts['handler'] = 'Symfony';
       }
       elseif (class_exists('\\SendGrid'))
       {
-        $opts['handler'] = "SendGrid";
+        $opts['handler'] = 'SendGrid';
       }
       else
       {
-        throw new \Exception("Could not detect an underlying mail library, please install either SwiftMailer or SendGrid.");
+        throw new \Exception("Could not detect an underlying mail library, please install either Symfony Mailer or SendGrid.");
       }
     }
 

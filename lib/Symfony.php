@@ -2,7 +2,7 @@
 
 namespace Lum\Mailer;
 
-class Swift
+class Symfony implements Handler
 {
   protected $parent;     // The Lum Mailer object.
   protected $mailer;     // The SwiftMailer object.
