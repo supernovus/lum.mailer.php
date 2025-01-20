@@ -19,9 +19,12 @@ To use it with SendGrid, include `sendgrid/sendgrid` in your `require` list.
 
 ## TODO
 
-Update the `SendGrid` plugin from using the `sendgrid/sendgrid` version 4 API
-to the new version 7 API. There's been a lot of changes between v4 and v7, so
-it will likely require a fairly significant rewrite.
+- Update the `SendGrid` plugin from using the `sendgrid/sendgrid` version 4 
+  API to the new version 7 API (and now the v8 library). 
+  There's been a lot of changes between v4 and v7/v8, so it will likely require
+  a fairly significant rewrite.
+- Replace the `Swift` plugin with a `Symphony` plugin, as Symphony Mailer is 
+  a replacement for SwiftMailer made by the same developers.
 
 ## Official URLs
 
