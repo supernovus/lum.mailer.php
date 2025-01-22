@@ -2,94 +2,122 @@
 
 namespace Lum\Mailer;
 
+use Lum\Mailer\Templates;
+use Lum\Mailer\Transport;
+
 /**
  * A quick class to send e-mails with.
  * Use it as a standalone component, or extend it for additional features.
  *
- * It requires an underlying mailer plugin/handler.
+ * It requires an underlying mailer plugin/transport.
  *
- * You can use 'Symfony' to use SwiftMailer or 'SendGrid' to use SendGrid.
- * These are case sensitive since we're now using PSR-4 autoloading.
+ * You can use 'Symfony' to use Symphony Mailer or 'SendGrid' to use SendGrid.
+ * These are case sensitive since we're using PSR-4 autoloading.
  */
-class Framework
+class Manager
 {
   // Internal rules.
-  protected $fields;     // Field rules. 'true' required, 'false' optional.
-  protected $views;      // Lum loader to use to load template.
-  protected $handler;    // The underlying handler. Use get_handler()
-  protected $def_template;  // Default template to use for e-mails.
-  protected $alt_template;  // Alternative template to use for e-mails.
+  protected array|bool|null $fields;
 
-  // Public fields. Reset on each send().
-  public $failures;     // A list of messages that failed.
-  public $missing;      // Set to an array if a required field wasn't set.
+  protected Templates\Plugin $templates;
+  protected Transport\Plugin $transport;
 
   // Set to true to enable logging errors.
-  public $log_errors = False;
-  public $log_message = False;
+  public bool $log_errors  = False;
+  public bool $log_message = False;
 
-  public function __construct ($fields=null, $opts=array())
+  public function __construct (array $opts=[])
   {
     // Send False or Null to disable the use of fields.
-    if (is_array($fields))
-      $this->fields = $fields;
+    if (is_array($opts['fields']))
+    {
+      $this->fields = $opts['fields'];
+    }
 
-    if (isset($opts['template']))
-      $this->def_template = $opts['template'];
-
-    if (isset($opts['alt_template']))
-      $this->alt_template = $opts['alt_template'];
-
-    if (isset($opts['views']))
-      $this->views = $opts['views'];
-
-    if (!isset($opts['handler']))
-    { // Try to determine which handler to use.
-      if (class_exists('\\Symfony\\Component\\Mailer\\Mailer'))
+    // First initialize the transport plugin
+    if (isset($opts['transport']))
+    {
+      if ($opts['transport'] instanceof Transport\Plugin)
       {
-        $opts['handler'] = 'Symfony';
+        $this->transport = $opts['transport'];
       }
-      elseif (class_exists('\\SendGrid'))
+      elseif (is_string($opts['transport']))
       {
-        $opts['handler'] = 'SendGrid';
+        $classname = $opts['transport'];
+        if (!str_contains($classname, '\\'))
+        {
+          $classname = "\\Lum\\Mailer\\Transport\\$classname";
+        }
+        if (class_exists($classname))
+        {
+          $this->transport = new $classname($this, $opts);
+        }
+        else
+        {
+          throw new \Exception("No such transport class: $classname");
+        }
       }
       else
       {
-        throw new \Exception("Could not detect an underlying mail library, please install either Symfony Mailer or SendGrid.");
-      }
-    }
-
-    if (is_object($opts['handler']) && is_callable([$opts['handler'], 'send_message']))
-    {
-      $this->handler = $opts['handler'];
-    }
-    elseif (is_string($opts['handler']))
-    {
-      $classname = $opts['handler'];
-      if (strpos($classname, '\\') === False)
-      {
-        $classname = "\\Lum\\Mailer\\$classname";
-      }
-      if (class_exists($classname))
-      {
-        $this->handler = new $classname($this, $opts);
-      }
-      else
-      {
-        throw new \Exception("Invalid 'handler' passed to Lum Mailer");
+        throw new \Exception("Invalid 'transport' option");
       }
     }
     else
     {
-      throw new \Exception("Unsupported 'handler' send to Lum Mailer");
+      $this->transport = new Transport\Symfony($this);
     }
+
+    // Next initialize the templates plugin
+    if (isset($opts['templates']))
+    {
+      if ($opts['templates'] instanceof Templates\Plugin)
+      {
+        $this->templates = $opts['templates'];
+      }
+      elseif (is_string($opts['templates']))
+      {
+        $classname = $opts['templates'];
+        if (!str_contains($classname, '\\'))
+        {
+          $classname = "\\Lum\\Mailer\\Templates\\$classname";
+        }
+        if (class_exists($classname))
+        {
+          $this->templates = new $classname($this, $opts);
+        }
+        else
+        {
+          throw new \Exception("No such template class: $classname");
+        }
+      }
+      else
+      {
+        throw new \Exception("Invalid 'templates' option");
+      }
+    }
+    else
+    {
+      $this->templates = new Templates\ViewLoader($this);
+    }
+
+  }
+
+  public function getTransport()
+  {
+    return $this->transport;
+  }
+
+  public function getTemplates()
+  {
+    return $this->templates;
   }
 
   public function send ($data, $opts=array())
   {
     // First, let's reset our special attributes.
-    $this->missing  = array();
-    $this->failures = array();
+    $msg = new Message($data, $this);
+
+    // TODO: rewrite this
 
     // Find the template to use.
     if (isset($opts['template']))
@@ -177,7 +205,7 @@ class Framework
       }
     }
 
-    $sent = $this->handler->send_message($message, $opts);
+    $sent = $this->transport->sendMessage($message, $opts);
 
     if ($this->log_errors && !$sent)
     {
