@@ -5,14 +5,20 @@ namespace Lum\Mailer\Transport;
 use Lum\Mailer\{Manager,Message};
 use Symfony\Component\Mime\Email;
 use Symfony\Component\Mailer\Transport;
+use Symfony\Component\Mailer\Exception\TransportExceptionInterface;
+use Symfony\Bridge\Twig\Mime\TemplatedEmail;
 
 class Symfony extends Plugin
 {
   const DEF_DSN = 'sendmail://default';
 
-  protected $symail; // The Symfony Mailer object.
+  // The Symfony Mailer object.
+  protected $symail;
 
-  public function __construct(Manager $manager, array $opts=[])
+  // Used by the Symfony template engine.
+  public bool $twigTemplates = false;
+
+  public function __construct(?Manager $manager, array $opts=[])
   {
     parent::__construct($manager, $opts);
     $dsn = $opts['dsn'] ?? static::DEF_DSN;
@@ -21,50 +27,49 @@ class Symfony extends Plugin
 
   public function setupMessage(Message $msg)
   {
-    $msg->transportMsg = new Email();
+    $data = $msg->getData();
+    $email = $this->twigTemplates ? new TemplatedEmail() : new Email();
+
+    // Each of these options may be passed directly as message data,
+    // or default values specified as transport plugin options. 
+    // Each also has a corresponding setter method in the Email class.
+    $opts = ['from','subject','to','cc','bcc'];
+
+    foreach ($opts as $opt)
+    {
+      $val = $data[$opt] ?? $this->opts[$opt] ?? null;
+      if (isset($val))
+      {
+        $email->$opt($val);
+      }
+    }
+
+    $msg->transportData = $email;
   }
 
   public function sendMessage (Message $msg)
   {
-    $data = $msg->getData();
-    $email = $msg->transportMsg;
+    $email = $msg->transportData;
 
-    if (isset($data['subject']))
-      $email->subject($data['subject']);
-
-    // Find the recipient(s).
-    if (isset($data['to']))
-      $email->to($data['to']);
-    if (isset($data['cc']))
-      $email->cc($data['cc']);
-    if (isset($data['bcc']))
-      $email->bcc($data['bcc']);
-
-    
-    if (is_array($msg))
+    if (isset($msg->textMessage))
     {
-      $html = $msg[0];
-      $text = $msg[1];
-      $email->setBody($html, 'text/html');
-      $email->addPart($text, 'text/plain');
-    }
-    elseif (is_string($msg))
-    {
-      if (substr(trim($msg), 0, 1) === '<')
-      {
-        $email->setBody($msg, 'text/html');
-      }
-      else
-      {
-        $email->setBody($msg, 'text/plain');
-      }
-    }
-    else
-    {
-      throw new \Exception("Unsupported message format");
+      $email->text($msg->textMessage);
     }
 
-    return $this->symail->send($email);
+    if (isset($msg->htmlMessage))
+    {
+      $email->html($msg->htmlMessage);
+    }
+
+    try 
+    {
+      $msg->transportSent = $this->symail->send($email);
+      $msg->sent = true;
+    }
+    catch (TransportExceptionInterface $e)
+    {
+      $msg->failures[] = $e;
+    } 
   }
   
 }

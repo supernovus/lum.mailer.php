@@ -17,11 +17,18 @@ class Message
 
   public array $failures = [];
   public array $missing  = [];
+  public bool  $valid    = true;
+  public bool  $sent     = false;
 
   /**
    * A transport-specific object storing message state
    */
-  public ?object $transportMsg = null;
+  public ?object $transportData = null;
+
+  /**
+   * A transport-specific send() return value
+   */
+  public mixed $transportSent = null;
 
   /**
    * Name/path to the template for HTML messages

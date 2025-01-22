@@ -16,21 +16,35 @@ directly rather than using this wrapper library.
 This version is **NOT** backwards compatible with any prior versions.
 It has changed the classnames, namespaces, and defaults.
 
-It has dropped the old `SendGrid` plugin. If you need to use SendGrid,
-you should install the `symfony/sendgrid-mailer` plugin and then set your 
-mail DSN string to `sendgrid://APIKEY@default`.
+It has dropped the old `SendGrid` transport plugin. 
+If you need to use SendGrid, you should install `symfony/sendgrid-mailer` 
+and then set the `dsn` option to `sendgrid://APIKEY@default`.
 
 Many option names have changed as well, read the docs for details.
 
 ## Classes
 
-| Class  | Description                                                        |
-| ------ | ------------------------------------------------------------------ |
-| Lum\Mailer\Manager | The main manager component used by apps.               |
-| Lum\Mailer\Templates\TemplateInterface | Interface for template plugins.    |
+| Class                           | Description                               |
+| ------------------------------- | ----------------------------------------- |
+| Lum\Mailer\Manager              | The main manager component used by apps.  |
+| Lum\Mailer\Templates\Plugin     | Interface for template plugins.           |
+| Lum\Mailer\Templates\Symfony    | Templates via Symfony (uses Twig).        |
+| Lum\Mailer\Templates\TextList   | Plain text messages (no template).        |
 | Lum\Mailer\Templates\ViewLoader | Templates using a [Lum Core] view loader. |
-| Lum\Mailer\Transport\Symfony | The Symfony Mailer transport plugin.         |
-| Lum\Mailer\Transport\TransportInterface | An interface for transports.      |
+| Lum\Mailer\Transport\Symfony    | The Symfony Mailer transport plugin.      |
+| Lum\Mailer\Transport\Plugin     | An interface for transports.              |
+
+### Plugin notes
+
+- If no `transport` option is specified, `Symfony` will be used.
+  This is currently the _only_ transport included by default.
+  Custom transports may be created and specified for special use cases.
+- If no `templates` option is specified, `ViewLoader` will be used.
+  In the future the default _MAY_ change to `Symfony` but for now
+  it's sticking with the templates as used by version 2.x and earlier.
+- If `templates` is `Symfony` but `transport` is NOT `Symfony`,
+  an Exception will be thrown. The Symfony template engine MUST only
+  be used in conjunction with the Symfony transport!
 
 ## Official URLs
 

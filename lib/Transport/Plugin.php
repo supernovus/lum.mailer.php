@@ -9,10 +9,5 @@ use Lum\Mailer\{BasePlugin,Message};
  */
 abstract class Plugin extends BasePlugin
 {
-  abstract public function sendMessage (Message $message);
-
-  public function setupMessage(Message $message)
-  {
-    return;
-  }
+  abstract public function sendMessage (Message $msg);
 }

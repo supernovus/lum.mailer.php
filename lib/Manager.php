@@ -16,222 +16,141 @@ use Lum\Mailer\Transport;
  */
 class Manager
 {
-  // Internal rules.
-  protected array|bool|null $fields;
+  const DEFAULT_TRANSPORT = 'Symfony';
+  const DEFAULT_TEMPLATES = 'ViewLoader';
 
-  protected Templates\Plugin $templates;
-  protected Transport\Plugin $transport;
+  // Options passed to the constructor
+  protected array $options;
+
+  protected ?Templates\Plugin $templates;
+  protected ?Transport\Plugin $transport;
 
   // Set to true to enable logging errors.
   public bool $log_errors  = False;
   public bool $log_message = False;
 
   public function __construct (array $opts=[])
+  { // Save the options as we'll use them a lot!
+    $this->options = $opts;
+  }
+
+  // Internal method used by getTransport() and getTemplates()
+  // to build instances on demand the first time they are requested.
+  // This is only required due to limitations in PHP constructors.
+  protected function getPluginFor(string $pt, string $dc)
   {
-    // Send False or Null to disable the use of fields.
-    if (is_array($opts['fields']))
+    if (isset($this->$pt))
     {
-      $this->fields = $opts['fields'];
+      return $this->$pt;
     }
 
-    // First initialize the transport plugin
-    if (isset($opts['transport']))
+    $opts = $this->options;
+    $nsp = '\\Lum\\Mailer\\'.ucfirst($pt);
+
+    if (isset($opts[$pt]))
     {
-      if ($opts['transport'] instanceof Transport\Plugin)
+      $ntype = "$nsp\\Plugin";
+      $pc = $opts[$pt];
+
+      if ($pc instanceof $ntype)
       {
-        $this->transport = $opts['transport'];
+        $this->$pt = $pc;
+        return $pc;
       }
-      elseif (is_string($opts['transport']))
+      elseif (is_string($pc))
       {
-        $classname = $opts['transport'];
-        if (!str_contains($classname, '\\'))
+        if (!str_contains($pc, '\\'))
         {
-          $classname = "\\Lum\\Mailer\\Transport\\$classname";
-        }
-        if (class_exists($classname))
-        {
-          $this->transport = new $classname($this, $opts);
-        }
-        else
-        {
-          throw new \Exception("No such transport class: $classname");
+          $pc = "$nsp\\$pc";
         }
       }
       else
       {
-        throw new \Exception("Invalid 'transport' option");
+        throw new \Exception("Invalid '$pt' option");
       }
     }
     else
     {
-      $this->transport = new Transport\Symfony($this);
+      $pc = "$nsp\\$dc";
     }
-
-    // Next initialize the templates plugin
-    if (isset($opts['templates']))
-    {
-      if ($opts['templates'] instanceof Templates\Plugin)
-      {
-        $this->templates = $opts['templates'];
-      }
-      elseif (is_string($opts['templates']))
-      {
-        $classname = $opts['templates'];
-        if (!str_contains($classname, '\\'))
-        {
-          $classname = "\\Lum\\Mailer\\Templates\\$classname";
-        }
-        if (class_exists($classname))
-        {
-          $this->templates = new $classname($this, $opts);
-        }
-        else
-        {
-          throw new \Exception("No such template class: $classname");
-        }
-      }
-      else
-      {
-        throw new \Exception("Invalid 'templates' option");
-      }
-    }
-    else
-    {
-      $this->templates = new Templates\ViewLoader($this);
-    }
-
-  }
-
-  public function getTransport()
-  {
-    return $this->transport;
-  }
-
-  public function getTemplates()
-  {
-    return $this->templates;
-  }
-
-  public function send ($data, $opts=array())
-  {
-    // First, let's reset our special attributes.
-    $msg = new Message($data, $this);
-
-    // TODO: rewrite this
-
-    // Find the template to use.
-    if (isset($opts['template']))
-      $template = $opts['template'];
-    elseif (isset($this->def_template))
-      $template = $this->def_template;
-    else
-      $template = Null; // We're not using a template.
-
-    // If the main template is HTML, we can have a text alternative.
-    if (isset($opts['alt_template']))
-      $alt_template = $opts['alt_template'];
-    elseif (isset($this->alt_template))
-      $alt_template = $this->alt_template;
-    else
-      $alt_template = Null; // No alt template.
-
-    if (is_array($data))
-    {
-      // Populate the fields for the e-mail message.
-      if (isset($this->fields))
-      {
-        $fields = array();
-        foreach ($this->fields as $field=>$required)
-        {
-          if (isset($data[$field]) && $data[$field] != '')
-            $fields[$field] = $data[$field];
-          elseif ($required)
-            $this->missing[$field] = true;
-        }
-
-        // We can only continue if all required fields are present.
-        if (count($this->missing))
-        { // We have missing values.
-          if ($this->log_errors)
-          {
-            error_log("Message data: ".json_encode($message));
-            error_log("Mailer missing: ".json_encode($this->missing));
-          }
-          return false;
-        }
-      }
-      else
-      {
-        $fields = $data;
-      }
     
-      // Are we using templates or not?
-      // Templates are highly recommended.
-      if (isset($template))
-      { // We're using templates (recommended.)
-        $message = $this->renderTemplate($template, $fields);
-      }
-      else
-      { // We're not using a template. Build the message manually.
-        $message = "---\n";
-        foreach ($fields as $field=>$value)
-        {
-          $message .= " $field: $value\n";
-        }
-        $message .= "---\n";
-      }
-
-      // How about a fallback template?
-      if (isset($alt_template))
-      {
-        $message = [$message];
-        $message[] = $this->renderTemplate($alt_template, $fields);
-      }
-    }
-    elseif (is_string($data))
+    if (class_exists($pc))
     {
-      $message = $data;
-    }
-    elseif (isset($template))
-    {
-      $message = $template;
-    } 
-    else
-    {
-      if ($this->log_errors)
-      {
-        error_log("Invalid message in send()");
-        return false;
-      }
+      $pi = new $pc($this, $opts);
+      $this->$pt = $pi;
+      return $pi;
     }
 
-    $sent = $this->transport->sendMessage($message, $opts);
-
-    if ($this->log_errors && !$sent)
-    {
-      error_log("Error sending mail, errors: ".serialize($this->failures));
-      if ($this->log_message)
-        error_log("The message was:\n$message");
-    }
-    return $sent;
   }
 
-  protected function renderTemplate ($template, $fields)
+  public function getOptions(): array
   {
-    $core = \Lum\Core::getInstance();
-    $loader = $this->views;
-    #error_log("template: '$template', loader: '$loader'");
-    if (isset($loader, $core->$loader))
-    { // We're using a view loader.
-      $message = $core->$loader->load($template, $fields);
+    return $this->options;
+  }
+
+  public function getKnownFields(): ?array
+  {
+    return (
+      (isset($this->options['fields']) 
+      && is_array($this->options['fields'])) 
+      ? $this->options['fields'] 
+      : null
+    );
+  }
+
+  public function setOptions (array $opts): static
+  {
+    foreach ($opts as $key => $val)
+    {
+      $this->options[$key] = $val;
     }
-    else
-    { // View library wasn't found. Assuming a full PHP include file path.
-      $message = \Lum\Core::get_php_content($template, $fields);
-    } 
-    return $message;
+    return $this;
+  }
+
+  public function getTransport(): Transport\Plugin
+  {
+    return $this->getPluginFor('transport', static::DEFAULT_TRANSPORT);
+  }
+
+  public function getTemplates(): Templates\Plugin
+  {
+    return $this->getPluginFor('templates', static::DEFAULT_TEMPLATES);
+  }
+
+  public function send (array $data=[], array $opts=[]): Message
+  {
+    // Get our transport and template plugins
+    $tr = $this->getTransport();
+    $tm = $this->getTemplates();
+
+    // Create and setup a message object
+    $msg = new Message($data, $this);
+    $tr->setupMessage($msg);
+    $tm->setupMessage($msg);
+
+    if (!$msg->valid)
+    { // Something did not pass validation
+      return $msg;
+    }
+
+    // Allow overriding templates on a per-message basis
+    $tmpls = ['htmlTemplate','textTemplate'];
+    foreach ($tmpls as $tmpl)
+    {
+      if (isset($opts[$tmpl]))
+      {
+        $msg->$tmpl = $opts[$tmpl];
+      }
+    }
+    
+    // Render the message template(s)
+    $tm->renderMessage($msg);
+
+    // Send the message via the transport
+    $tr->sendMessage($msg);
+
+    // We're done here
+    return $msg;
   }
 
 }
-
-// End of class.

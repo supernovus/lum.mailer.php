@@ -9,10 +9,39 @@ use Lum\Mailer\{BasePlugin,Message};
  */
 abstract class Plugin extends BasePlugin
 {
-  abstract public function renderMessage(Message $message);
+  abstract public function renderMessage(Message $msg);
 
-  public function setupMessage(Message $message)
+  /**
+   * Common setup for template plugins handles required fields.
+   */
+  public function setupMessage(Message $msg)
   {
-    return;
+    $fields = $this->manager->getKnownFields();
+
+    if (!isset($fields))
+    { // No fields to test, nothing more to do here.
+      return;
+    }
+
+    $data = $msg->getData();
+
+    foreach ($fields as $field => $required)
+    {
+      if ($required && empty($data[$field]))
+      {
+        $msg->missing[$field] = true;
+      }
+    }
+
+    // We can only continue if all required fields are present.
+    if (count($msg->missing))
+    { // We have missing values.
+      $msg->valid = false;
+      if ($this->manager->log_errors)
+      {
+        error_log("Message data: ".json_encode($data));
+        error_log("Mailer missing: ".json_encode($msg->missing));
+      }
+    }
   }
 }
