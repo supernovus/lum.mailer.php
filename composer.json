@@ -12,30 +12,22 @@
   ],
   "require":
   {
-    "lum/lum-compat": "^2.0"
-  },
-  "require-dev":
-  {
-    "swiftmailer/swiftmailer": "^6.0",
-    "sendgrid/sendgrid": "~4"
-  },
-  "suggest":
-  {
-    "swiftmailer/swiftmailer": "If using Swift transport, requires ^6.0.",
-    "sendgrid/sendgrid": "If using SendGrid transport, requires ~4."
+    "lum/lum-compat": "^2.0",
+    "lum/lum-core": "^3.0",
+    "symfony/mailer": "^7.2"
   },
   "autoload":
   {
     "psr-4":
     {
-      "Lum\\": "lib"
+      "Lum\\Mailer\\": "lib"
     }
   },
   "extra":
   {
     "branch-alias":
     {
-      "dev-main": "2.x-dev"
+      "dev-main": "3.x-dev"
     }
   }
 }
