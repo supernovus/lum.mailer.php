@@ -80,6 +80,10 @@ class Manager
       $this->$pt = $pi;
       return $pi;
     }
+    else
+    {
+      throw new \Exception("No such plugin class: $pc");
+    }
 
   }
 
