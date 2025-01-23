@@ -53,7 +53,8 @@ class Manager
       $pc = $opts[$pt];
 
       if ($pc instanceof $ntype)
-      {
+      { /** @disregard P1006 */
+        $pc->setManager($this);
         $this->$pt = $pc;
         return $pc;
       }
