@@ -2,7 +2,7 @@
 
 namespace Lum\Mailer\Templates;
 
-use Lum\Mailer\{Manager,Message};
+use Lum\Mailer\{Message};
 
 /**
  * Use PHP templates.

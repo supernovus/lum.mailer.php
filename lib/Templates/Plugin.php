@@ -39,8 +39,8 @@ abstract class Plugin extends BasePlugin
       $msg->valid = false;
       if ($this->manager->log_errors)
       {
-        error_log("Message data: ".json_encode($data));
-        error_log("Mailer missing: ".json_encode($msg->missing));
+        $log = ["data"=>$data, "missing"=>$msg->missing];
+        error_log("«Lum-Mailer::Templates» ".json_encode($data));
       }
     }
   }

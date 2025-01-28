@@ -54,16 +54,26 @@ class Message
     array $data, 
     Manager $manager)
   {
+    $opts = $manager->getOptions();
+
     if (isset($data[static::HTML_TMPL]))
     {
       $this->htmlTemplate = $data[static::HTML_TMPL];
       unset($data[static::HTML_TMPL]);
+    }
+    elseif (isset($opts[static::HTML_TMPL]))
+    {
+      $this->htmlTemplate = $opts[static::HTML_TMPL];
     }
 
     if (isset($data[static::TEXT_TMPL]))
     {
       $this->textTemplate = $data[static::TEXT_TMPL];
       unset($data[static::TEXT_TMPL]);
+    }
+    elseif (isset($opts[static::TEXT_TMPL]))
+    {
+      $this->textTemplate = $opts[static::TEXT_TMPL];
     }
 
     $this->data = $data;

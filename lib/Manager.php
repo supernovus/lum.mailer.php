@@ -25,13 +25,23 @@ class Manager
   protected ?Templates\Plugin $templates;
   protected ?Transport\Plugin $transport;
 
-  // Set to true to enable logging errors.
-  public bool $log_errors  = False;
-  public bool $log_message = False;
+  /**
+   * Level of verbosity of error logs.
+   * 
+   * 0 = Nothing logged
+   * 1 = Known errors logged (default)
+   * 
+   * More levels with extra details to be added later.
+   */
+  public int $log_errors = 1;
 
   public function __construct (array $opts=[])
   { // Save the options as we'll use them a lot!
     $this->options = $opts;
+    if (isset($opts['log_errors']) && is_numeric($opts['log_errors']))
+    {
+      $this->log_errors = intval($opts['log_errors']);
+    }
   }
 
   // Internal method used by getTransport() and getTemplates()
@@ -122,7 +132,7 @@ class Manager
     return $this->getPluginFor('templates', static::DEFAULT_TEMPLATES);
   }
 
-  public function send (array $data=[], array $opts=[]): Message
+  public function send (array $data=[]): Message
   {
     // Get our transport and template plugins
     $tr = $this->getTransport();
@@ -137,22 +147,17 @@ class Manager
     { // Something did not pass validation
       return $msg;
     }
-
-    // Allow overriding templates on a per-message basis
-    $tmpls = ['htmlTemplate','textTemplate'];
-    foreach ($tmpls as $tmpl)
-    {
-      if (isset($opts[$tmpl]))
-      {
-        $msg->$tmpl = $opts[$tmpl];
-      }
-    }
     
     // Render the message template(s)
     $tm->renderMessage($msg);
 
     // Send the message via the transport
     $tr->sendMessage($msg);
+
+    if (!$msg->sent && $this->log_errors)
+    {
+      error_log("«Lum-Mailer::SendErrors» ".serialize($msg->failures));
+    }
 
     // We're done here
     return $msg;
